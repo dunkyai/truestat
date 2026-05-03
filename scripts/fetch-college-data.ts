@@ -122,17 +122,23 @@ function calculateROI(
   medianDebt: number | null,
   graduationRate: number | null
 ): { score: number | null; verdict: string | null } {
-  if (!medianEarnings10yr || !medianDebt || graduationRate === null) {
+  // Need at least earnings to calculate any ROI
+  if (medianEarnings10yr === null || medianEarnings10yr <= 0) {
     return { score: null, verdict: null };
   }
 
-  const dti = medianDebt / medianEarnings10yr;
+  // DTI score (0-40 pts) — if no debt data, assume moderate debt
+  const debt = medianDebt != null && medianDebt > 0 ? medianDebt : 20000;
+  const dti = debt / medianEarnings10yr;
   const dtiScore = Math.max(0, Math.min(40, (1 - dti) * 40));
 
+  // Earnings premium over HS grad baseline (0-40 pts)
   const earningsPremium = (medianEarnings10yr - 35000) / 35000;
   const earningsScore = Math.max(0, Math.min(40, earningsPremium * 20));
 
-  const gradScore = graduationRate * 20;
+  // Graduation rate (0-20 pts) — if missing, use 0.5 as neutral
+  const gradRate = graduationRate != null ? graduationRate : 0.5;
+  const gradScore = gradRate * 20;
 
   const total = Math.round(dtiScore + earningsScore + gradScore);
   const score = Math.max(0, Math.min(100, total));
