@@ -31,6 +31,27 @@ async function getSchoolMajors(schoolId: string) {
   return data ?? [];
 }
 
+async function getSchoolVerdict(schoolId: string): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data } = await supabase
+    .from("school_verdicts")
+    .select("verdict_text")
+    .eq("school_id", schoolId)
+    .single();
+  return data?.verdict_text ?? null;
+}
+
+async function getSchoolFaqs(schoolId: string): Promise<{ question: string; answer: string }[] | null> {
+  if (!isSupabaseConfigured()) return null;
+  const { data } = await supabase
+    .from("page_faqs")
+    .select("faqs")
+    .eq("page_type", "school")
+    .eq("page_id", schoolId)
+    .single();
+  return data?.faqs ?? null;
+}
+
 export async function generateStaticParams() {
   if (!isSupabaseConfigured()) return [];
   const { data } = await supabase.from("schools").select("slug");
@@ -61,7 +82,11 @@ export default async function SchoolPage({ params }: PageProps) {
     );
   }
 
-  const majors = await getSchoolMajors(school.id);
+  const [majors, verdict, customFaqs] = await Promise.all([
+    getSchoolMajors(school.id),
+    getSchoolVerdict(school.id),
+    getSchoolFaqs(school.id),
+  ]);
 
   const verdictColor = (v: string | null): "green" | "amber" | "red" | "default" => {
     if (v === "Strong ROI") return "green";
@@ -70,7 +95,7 @@ export default async function SchoolPage({ params }: PageProps) {
     return "default";
   };
 
-  const faqItems = [
+  const faqItems = customFaqs ?? [
     {
       question: `What is the ROI of ${school.name}?`,
       answer: school.roi_score
@@ -116,6 +141,13 @@ export default async function SchoolPage({ params }: PageProps) {
           />
         )}
       </div>
+
+      {/* AI-generated verdict */}
+      {verdict && (
+        <p className="mt-6 rounded-lg border border-indigo-100 bg-indigo-50 p-4 text-gray-700 leading-relaxed">
+          {verdict}
+        </p>
+      )}
 
       {/* Metrics */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

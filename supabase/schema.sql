@@ -42,3 +42,43 @@ CREATE INDEX idx_schools_slug ON schools(slug);
 CREATE INDEX idx_majors_slug ON majors(slug);
 CREATE INDEX idx_school_majors_school ON school_majors(school_id);
 CREATE INDEX idx_school_majors_major ON school_majors(major_id);
+
+-- Agent-generated content tables
+
+CREATE TABLE school_verdicts (
+  school_id TEXT PRIMARY KEY REFERENCES schools(id),
+  verdict_text TEXT NOT NULL,
+  verdict_generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE page_faqs (
+  id SERIAL PRIMARY KEY,
+  page_type TEXT NOT NULL CHECK (page_type IN ('school', 'major', 'state')),
+  page_id TEXT NOT NULL,
+  faqs JSONB NOT NULL,
+  generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE (page_type, page_id)
+);
+
+CREATE TABLE blog_posts (
+  slug TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  author TEXT DEFAULT 'TrueStat',
+  tags TEXT[],
+  source_type TEXT CHECK (source_type IN ('ranking', 'insight', 'analysis')),
+  published_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_page_faqs_lookup ON page_faqs(page_type, page_id);
+
+CREATE OR REPLACE FUNCTION count_missing_verdicts()
+RETURNS INTEGER AS $$
+  SELECT COUNT(*)::INTEGER
+  FROM schools
+  WHERE id NOT IN (SELECT school_id FROM school_verdicts)
+  AND roi_score IS NOT NULL;
+$$ LANGUAGE SQL;
