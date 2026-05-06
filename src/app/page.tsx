@@ -77,6 +77,14 @@ export default function HomePage() {
             Browse by State
           </Link>
         </div>
+        <div className="mt-6">
+          <Link
+            href="/blog"
+            className="text-sm font-medium text-indigo-600 underline underline-offset-2 transition hover:text-indigo-800"
+          >
+            Read Our Latest Insights
+          </Link>
+        </div>
       </section>
     </main>
   );
